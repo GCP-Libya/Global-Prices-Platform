@@ -11,7 +11,7 @@ import { formatDisplayDate } from '../utils/formatDate';
 
 export const HistoricalArchive = () => {
   const { t, language } = useLanguage();
-  const { history: historyData, fetchHistory, loading: marketLoading } = useMarketData();
+  const { history: historyData, fetchHistory, historyLoading: marketLoading } = useMarketData();
   const [commodities, setCommodities] = useState<any[]>([]);
   const [selectedCommodityId, setSelectedCommodityId] = useState<string>('');
   

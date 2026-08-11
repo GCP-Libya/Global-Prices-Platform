@@ -151,7 +151,7 @@ export const AnalyticsCharts = () => {
     if (chartRef.current === null) return;
     try {
       const chartTitle = t('performanceComparison');
-      const commodityName = activeTab === 'energy' ? t('energy') : activeTab === 'metals' ? t('metals') : t('basicCommodities');
+      const commodityName = activeTab === 'energy' ? t('energy' as any) : activeTab === 'metals' ? t('metals' as any) : t('basicCommodities' as any);
       
       await exportChartToPNG({
         element: chartRef.current,

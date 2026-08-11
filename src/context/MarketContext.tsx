@@ -8,7 +8,8 @@ interface MarketContextType {
   analyses: any[];
   history: any[];
   connected: boolean;
-  loading: boolean;
+  pricesLoading: boolean;
+  historyLoading: boolean;
   error: string | null;
   lastUpdate: Date | null;
   latency: number | null;
@@ -25,7 +26,8 @@ const MarketContext = createContext<MarketContextType>({
   analyses: [],
   history: [],
   connected: false,
-  loading: true,
+  pricesLoading: true,
+  historyLoading: false,
   error: null,
   lastUpdate: null,
   latency: null,
@@ -42,8 +44,10 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [analyses, setAnalyses] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const historySymbolRef = React.useRef<string | null>(null);
+
   const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [pricesLoading, setPricesLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [latency, setLatency] = useState<number | null>(null);
@@ -71,7 +75,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (supaError) throw supaError;
 
       setLatency(Date.now() - fetchStart);
-      setLoading(false);
+      setPricesLoading(false);
       setError(null);
       
       if (commodities && commodities.length > 0) {
@@ -135,7 +139,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setData([]);
       }
     } finally {
-      setLoading(false);
+      setPricesLoading(false);
     }
   };
 
@@ -193,6 +197,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!sym) return;
     historySymbolRef.current = sym;
     
+    setHistoryLoading(true);
     try {
       const timeoutPromise = new Promise((resolve) => 
         setTimeout(() => resolve({ data: null, error: { message: 'History timeout' } }), 5000)
@@ -213,6 +218,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     } catch (err) {
       console.warn('Supabase history fetch error:', err);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -233,7 +240,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   return (
     <MarketContext.Provider value={{ 
-      data, news, analyses, history, connected, loading, error, lastUpdate, latency, isMockData,
+      data, news, analyses, history, connected, pricesLoading, historyLoading, error, lastUpdate, latency, isMockData,
       fetchCommodities, fetchNews, fetchAnalyses, fetchHistory
     }}>
       {children}

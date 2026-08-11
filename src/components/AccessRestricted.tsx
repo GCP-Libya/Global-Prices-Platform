@@ -29,6 +29,23 @@ export const AccessRestricted = () => {
     return language === 'ar' ? 'دخول مقيد' : 'Restricted Access';
   };
 
+  const getMessage = () => {
+    if (statusMessage) return language === 'ar' ? statusMessage.ar : statusMessage.en;
+    if (!user) {
+      return language === 'ar' 
+        ? 'التحليلات والتقارير المتقدمة تتطلب حساباً معتمداً. يرجى تسجيل الدخول أو إنشاء حساب جديد.' 
+        : 'Advanced analytics and reports require an approved account. Please sign in or create a new account.';
+    }
+    if (platformUser && platformUser.approval_status === 'pending') {
+      return language === 'ar'
+        ? 'حسابك قيد المراجعة ولم تتم الموافقة بعد.\nيرجى انتظار موافقة إدارة المنصة.'
+        : 'Account under review.\nPlease wait for platform administrator approval.';
+    }
+    return language === 'ar' 
+      ? 'هذا الجزء مخصص للمستخدمين المعتمدين فقط. سيتم مراجعة بياناتك وتفعيل الوصول قريباً.' 
+      : 'This section is for approved users only. Your data will be reviewed and access granted soon.';
+  };
+
   return (
     <div className="py-20 flex items-center justify-center container mx-auto px-4">
       <motion.div 
@@ -44,12 +61,8 @@ export const AccessRestricted = () => {
         
         <h2 className="text-3xl font-black text-white mb-6 uppercase tracking-tight">{getTitle()}</h2>
         
-        <p className="text-gray-400 text-lg font-bold leading-relaxed mb-10">
-          {statusMessage ? (language === 'ar' ? statusMessage.ar : statusMessage.en) : (
-            user ? 
-            (language === 'ar' ? 'هذا الجزء مخصص للمستخدمين المعتمدين فقط. سيتم مراجعة بياناتك وتفعيل الوصول قريباً.' : 'This section is for approved users only. Your data will be reviewed and access granted soon.') :
-            (language === 'ar' ? 'التحليلات والتقارير المتقدمة تتطلب حساباً معتمداً. يرجى تسجيل الدخول أو إنشاء حساب جديد.' : 'Advanced analytics and reports require an approved account. Please sign in or create a new account.')
-          )}
+        <p className="text-gray-400 text-lg font-bold leading-relaxed mb-10 whitespace-pre-line">
+          {getMessage()}
         </p>
 
         {!user && (

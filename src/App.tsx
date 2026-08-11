@@ -1,3 +1,4 @@
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
@@ -7,6 +8,7 @@ import { LiveTicker } from './components/LiveTicker';
 import { NewsTicker } from './components/NewsTicker';
 import { Home } from './pages/Home';
 import { Auth } from './pages/Auth';
+import { ResetPassword } from './pages/ResetPassword';
 import { LegalPage } from './pages/LegalPage';
 import { Services } from './components/Services';
 import { VisitorTracker } from './components/VisitorTracker';
@@ -17,7 +19,6 @@ import { MarketProvider } from './context/MarketContext';
 import { AuthProvider } from './context/AuthContext';
 import { hasSupabaseConfig } from './lib/supabase';
 import { AlertCircle, PlusCircle } from 'lucide-react';
-import DisabledAdmin from './pages/DisabledAdmin';
 import { useVisitorTracking } from './hooks/useVisitorTracking';
 
 const Markets = lazy(() => import('./pages/Markets').then(m => ({ default: m.Markets })));
@@ -154,10 +155,10 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/markets" element={<Markets />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/analysis" element={<Analytics />} />
+        <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path="/analysis" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/news" element={<News />} />
-        <Route path="/reports" element={<Reports />} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/privacy" element={<LegalPage />} />
@@ -165,11 +166,7 @@ const AppRoutes = () => {
         <Route path="/disclaimer" element={<LegalPage />} />
         <Route path="/services" element={<Services />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path={formattedPath} element={<DisabledAdmin />} />
-        <Route path="/admin" element={<DisabledAdmin />} />
-        <Route path="/admin/*" element={<DisabledAdmin />} />
-        <Route path="/control" element={<DisabledAdmin />} />
-        <Route path="/control/*" element={<DisabledAdmin />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Home />} />
       </Routes>
     </Suspense>

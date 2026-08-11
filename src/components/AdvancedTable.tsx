@@ -56,7 +56,7 @@ const Sparkline = ({ data, trend }: { data: any[], trend: 'up' | 'down' | 'neutr
 };
 
 export const AdvancedTable = ({ limit }: { limit?: number }) => {
-  const { data: commoditiesData, connected, loading, error, lastUpdate, latency, isMockData } = useMarketData();
+  const { data: commoditiesData, connected, pricesLoading: loading, error, lastUpdate, latency, isMockData } = useMarketData();
   const { t, language } = useLanguage();
   
   const formatPrice = (val: number | string | undefined | null) => {

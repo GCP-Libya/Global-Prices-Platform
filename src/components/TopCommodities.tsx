@@ -7,7 +7,7 @@ import { PriceDisplay } from './PriceDisplay';
 import { CommodityHistoryModal } from './CommodityHistoryModal';
 
 export const TopCommodities = () => {
-  const { data, loading, error, isMockData } = useMarketData();
+  const { data, pricesLoading: loading, error, isMockData } = useMarketData();
   const { t, language } = useLanguage();
   const [selectedCommodity, setSelectedCommodity] = useState<any>(null);
 

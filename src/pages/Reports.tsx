@@ -9,7 +9,7 @@ import { formatDisplayDate } from '../utils/formatDate';
 
 export const Reports = () => {
   const { language } = useLanguage();
-  const { analyses: analysesData, loading: marketLoading } = useMarketData();
+  const { analyses: analysesData, pricesLoading: marketLoading } = useMarketData();
   const [reports, setReports] = useState<any[]>([]);
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);

@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, AreaChart, Area, XAxis, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
+import { useChartContainer } from '../hooks/useChartContainer';
 
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -38,19 +39,23 @@ type SortConfig = {
 
 const Sparkline = ({ data, trend }: { data: any[], trend: 'up' | 'down' | 'neutral' }) => {
   const color = trend === 'up' ? '#10B981' : trend === 'down' ? '#EF4444' : '#6B7280';
+  const { containerRef, isReady } = useChartContainer();
+  
   return (
-    <div className="h-8 w-24">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          <Line 
-            type="monotone" 
-            dataKey="price" 
-            stroke={color} 
-            strokeWidth={1.5} 
-            dot={false} 
-          />
-        </LineChart>
-      </ResponsiveContainer>
+    <div ref={containerRef} className="h-8 w-24">
+      {isReady && data && data.length > 0 && (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data}>
+            <Line 
+              type="monotone" 
+              dataKey="price" 
+              stroke={color} 
+              strokeWidth={1.5} 
+              dot={false} 
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 };

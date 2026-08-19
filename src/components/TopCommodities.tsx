@@ -1,3 +1,4 @@
+import { useChartContainer } from '../hooks/useChartContainer';
 import React, { useState } from 'react';
 import { useMarketData } from '../context/MarketContext';
 import { ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
@@ -6,6 +7,36 @@ import { useLanguage } from '../context/LanguageContext';
 import { PriceDisplay } from './PriceDisplay';
 import { CommodityHistoryModal } from './CommodityHistoryModal';
 
+
+const MiniChart = ({ item, color }: { item: any, color: string }) => {
+  const { containerRef, isReady } = useChartContainer();
+  return (
+    <div ref={containerRef} className="h-16 w-full mt-4 relative z-10">
+      {isReady && item.history && item.history.length > 0 && (
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={item.history}>
+            <defs>
+              <linearGradient id={`gradient-${item.id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <YAxis domain={['dataMin', 'dataMax']} hide />
+            <Area 
+              type="monotone" 
+              dataKey="price" 
+              stroke={color} 
+              strokeWidth={2}
+              fillOpacity={1} 
+              fill={`url(#gradient-${item.id})`} 
+              isAnimationActive={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+};
 export const TopCommodities = () => {
   const { data, pricesLoading: loading, error, isMockData } = useMarketData();
   const { t, language } = useLanguage();
@@ -157,28 +188,7 @@ export const TopCommodities = () => {
                 </div>
 
                 {/* Mini Chart */}
-                <div className="h-16 w-full mt-4 relative z-10">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={item.history}>
-                      <defs>
-                        <linearGradient id={`gradient-${item.id}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor={color} stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <YAxis domain={['dataMin', 'dataMax']} hide />
-                      <Area 
-                        type="monotone" 
-                        dataKey="price" 
-                        stroke={color} 
-                        strokeWidth={2}
-                        fillOpacity={1} 
-                        fill={`url(#gradient-${item.id})`} 
-                        isAnimationActive={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+                <MiniChart item={item} color={color} />
               </div>
             );
           })}

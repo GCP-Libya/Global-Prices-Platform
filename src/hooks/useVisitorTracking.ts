@@ -15,10 +15,11 @@ export const useVisitorTracking = () => {
       
       // Fire and forget
       try {
-        await supabase.from('site_visits').insert([{
-          page_path: path,
-          user_agent: navigator.userAgent
-        }]);
+        // Temporarily disabled to prevent 403 errors
+        // await supabase.from('site_visits').insert([{
+        //   page_path: path,
+        //   user_agent: navigator.userAgent
+        // }]);
       } catch (err) {
         console.warn('Failed to log site visit', err);
       }

@@ -1,5 +1,8 @@
 {
   "name": "منصة الأسعار العالمية",
   "description": "منصة رقمية متقدمة وشاملة تعرض أسعار السلع الأساسية العالمية، المعادن، والمنتجات الزراعية بشكل لحظي ودقيق مع تحليلات فنية وتقارير حصرية.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

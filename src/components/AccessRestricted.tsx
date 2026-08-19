@@ -17,15 +17,17 @@ export const AccessRestricted = () => {
     if (!platformUser.is_active) return <Ban size={48} />;
     if (platformUser.approval_status === 'pending') return <Clock size={48} />;
     if (platformUser.approval_status === 'rejected') return <ShieldAlert size={48} />;
+    if (platformUser.approval_status === 'suspended') return <Ban size={48} />;
     return <Lock size={48} />;
   };
 
   const getTitle = () => {
     if (!user) return language === 'ar' ? 'يرجى تسجيل الدخول' : 'Please Sign In';
     if (!platformUser) return language === 'ar' ? 'مطلوب إكمال البيانات' : 'Profile Required';
-    if (!platformUser.is_active) return language === 'ar' ? 'تم إيقاف الحساب' : 'Account Suspended';
+    if (!platformUser.is_active) return language === 'ar' ? 'تم تعليق الحساب' : 'Account Suspended';
     if (platformUser.approval_status === 'pending') return language === 'ar' ? 'الحساب قيد المراجعة' : 'Account Under Review';
-    if (platformUser.approval_status === 'rejected') return language === 'ar' ? 'تم رفض طلب الوصول' : 'Access Request Rejected';
+    if (platformUser.approval_status === 'rejected') return language === 'ar' ? 'تم رفض طلب التسجيل' : 'Registration Request Rejected';
+    if (platformUser.approval_status === 'suspended') return language === 'ar' ? 'تم تعليق الحساب' : 'Account Suspended';
     return language === 'ar' ? 'دخول مقيد' : 'Restricted Access';
   };
 
@@ -33,16 +35,30 @@ export const AccessRestricted = () => {
     if (statusMessage) return language === 'ar' ? statusMessage.ar : statusMessage.en;
     if (!user) {
       return language === 'ar' 
-        ? 'التحليلات والتقارير المتقدمة تتطلب حساباً معتمداً. يرجى تسجيل الدخول أو إنشاء حساب جديد.' 
-        : 'Advanced analytics and reports require an approved account. Please sign in or create a new account.';
+        ? 'التحليلات والتقارير المتقدمة تتطلب حساباً معتمداً. يرجى تسجيل الدخول أو طلب حساب جديد.' 
+        : 'Advanced analytics and reports require an approved account. Please sign in or request a new account.';
     }
+
     if (platformUser && platformUser.approval_status === 'pending') {
       return language === 'ar'
-        ? 'حسابك قيد المراجعة ولم تتم الموافقة بعد.\nيرجى انتظار موافقة إدارة المنصة.'
-        : 'Account under review.\nPlease wait for platform administrator approval.';
+        ? 'طلب حسابك قيد المراجعة، يرجى انتظار موافقة الإدارة.'
+        : 'Your account request is under review, please wait for admin approval.';
     }
+    
+    if (platformUser && platformUser.approval_status === 'rejected') {
+      return language === 'ar'
+        ? 'تم رفض طلب التسجيل.'
+        : 'Registration request was rejected.';
+    }
+
+    if (platformUser && (!platformUser.is_active || platformUser.approval_status === 'suspended')) {
+      return language === 'ar'
+        ? 'تم تعليق الحساب، يرجى التواصل مع الإدارة.'
+        : 'Your account is suspended, please contact the administration.';
+    }
+
     return language === 'ar' 
-      ? 'هذا الجزء مخصص للمستخدمين المعتمدين فقط. سيتم مراجعة بياناتك وتفعيل الوصول قريباً.' 
+      ? 'هذا القسم مخصص للمستخدمين المعتمدين فقط. سيتم مراجعة بياناتك وتفعيل الوصول قريباً.' 
       : 'This section is for approved users only. Your data will be reviewed and access granted soon.';
   };
 
@@ -61,7 +77,7 @@ export const AccessRestricted = () => {
         
         <h2 className="text-3xl font-black text-white mb-6 uppercase tracking-tight">{getTitle()}</h2>
         
-        <p className="text-gray-400 text-lg font-bold leading-relaxed mb-10 whitespace-pre-line">
+        <p className="text-gray-400 text-lg md:text-xl font-bold leading-relaxed mb-10 whitespace-pre-line">
           {getMessage()}
         </p>
 
@@ -69,9 +85,9 @@ export const AccessRestricted = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button 
               onClick={() => navigate('/auth')}
-              className="w-full sm:w-auto bg-[#D4AF37] text-[#0A1128] px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#E5C158] transition-all shadow-xl shadow-[#D4AF37]/10"
+              className="w-full sm:w-auto bg-[#D4AF37] text-[#0A1128] px-10 py-5 rounded-2xl font-black text-base md:text-lg uppercase tracking-widest hover:bg-[#E5C158] transition-all shadow-xl shadow-[#D4AF37]/10"
             >
-              {language === 'ar' ? 'تسجيل الدخول / إنشاء حساب' : 'Sign In / Register'}
+              {language === 'ar' ? 'تسجيل الدخول / طلب حساب' : 'Sign In / Request Account'}
             </button>
           </div>
         )}
@@ -83,7 +99,7 @@ export const AccessRestricted = () => {
                 await supabase.auth.signOut();
                 navigate('/');
               }}
-              className="w-full sm:w-auto bg-[#1C2E5A] text-white px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#25396D] transition-all shadow-xl border border-[#2A4075]"
+              className="w-full sm:w-auto bg-[#1C2E5A] text-white px-10 py-5 rounded-2xl font-black text-base md:text-lg uppercase tracking-widest hover:bg-[#25396D] transition-all shadow-xl border border-[#2A4075]"
             >
               {language === 'ar' ? 'تسجيل الخروج والرجوع' : 'Logout and Go Back'}
             </button>

@@ -1,5 +1,5 @@
-export type Sector = 'الطاقة' | 'المعادن' | 'السلع الزراعية' | 'المؤشرات';
-export type SectorEn = 'Energy' | 'Metals' | 'Agriculture' | 'Indices';
+export type Sector = 'الطاقة' | 'المعادن' | 'السلع الزراعية' | 'السلع الأساسية' | 'المؤشرات' | 'العملات' | 'الشحن' | string;
+export type SectorEn = 'Energy' | 'Metals' | 'Agriculture' | 'Commodities' | 'Indices' | 'Currencies' | 'Shipping' | string;
 export type Trend = 'up' | 'down' | 'neutral';
 export type MarketStatus = 'مفتوح' | 'مغلق';
 export type MarketStatusEn = 'Open' | 'Closed';

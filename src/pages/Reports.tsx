@@ -9,29 +9,72 @@ import { formatDisplayDate } from '../utils/formatDate';
 
 export const Reports = () => {
   const { language } = useLanguage();
-  const { analyses: analysesData, pricesLoading: marketLoading } = useMarketData();
+  const { analyses: analysesData } = useMarketData();
   const [reports, setReports] = useState<any[]>([]);
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (analysesData) {
-      const fetchedReports = analysesData.map((a: any) => ({ 
-        id: a.id, 
-        titleAr: a.title_ar,
-        titleEn: a.title_en,
-        contentAr: a.content_ar,
-        contentEn: a.content_en,
-        publishedAt: a.created_at,
-        ...a
-      }));
-      setReports(fetchedReports);
-      if (fetchedReports.length > 0 && !selectedReport) {
-        setSelectedReport(fetchedReports[0]);
+    let isMounted = true;
+    const loadReports = async () => {
+      try {
+        if (analysesData && analysesData.length > 0) {
+          const fetchedReports = analysesData.map((a: any) => ({ 
+            id: a.id, 
+            titleAr: a.title_ar || a.title || '',
+            titleEn: a.title_en || a.title || '',
+            contentAr: a.content_ar || a.content || '',
+            contentEn: a.content_en || a.content || '',
+            topic: a.topic || a.sector || (language === 'ar' ? 'تقرير عام' : 'General Report'),
+            publishedAt: a.created_at || new Date().toISOString(),
+            ...a
+          }));
+          if (isMounted) {
+            setReports(fetchedReports);
+            setSelectedReport((prev: any) => prev || fetchedReports[0]);
+          }
+        } else {
+          const { data: directAnalyses, error: analysesErr } = await supabase
+            .from('analyses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+          if (analysesErr) {
+            console.log('[REPORTS] direct fetch error:', analysesErr.message);
+          }
+
+          if (isMounted) {
+            if (directAnalyses && directAnalyses.length > 0) {
+              const fetchedReports = directAnalyses.map((a: any) => ({
+                id: a.id,
+                titleAr: a.title_ar || a.title || '',
+                titleEn: a.title_en || a.title || '',
+                contentAr: a.content_ar || a.content || '',
+                contentEn: a.content_en || a.content || '',
+                topic: a.topic || a.sector || (language === 'ar' ? 'تقرير عام' : 'General Report'),
+                publishedAt: a.created_at || new Date().toISOString(),
+                ...a
+              }));
+              setReports(fetchedReports);
+              setSelectedReport((prev: any) => prev || fetchedReports[0]);
+            } else {
+              setReports([]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error processing reports:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      setLoading(marketLoading);
-    }
-  }, [analysesData, marketLoading, selectedReport]);
+    };
+
+    loadReports();
+    return () => { isMounted = false; };
+  }, [analysesData, language]);
 
   const handleDownload = () => {
     if (!selectedReport) return;
@@ -181,3 +224,5 @@ export const Reports = () => {
     </div>
   );
 };
+
+export default Reports;

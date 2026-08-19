@@ -8,8 +8,11 @@ import { useAuth } from '../context/AuthContext';
 
 export const Header = () => {
   const { t, language, setLanguage } = useLanguage();
-  const { settings } = useSettings();
-  const { user, signOut } = useAuth();
+  const { settings, loading: settingsLoading } = useSettings();
+  const { user, platformUser, authLoading, platformUserLoading, signOut } = useAuth();
+
+  console.log('HEADER USER:', !!user);
+  console.log('HEADER PLATFORM USER:', !!platformUser);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,39 +131,76 @@ export const Header = () => {
             </span>
           </button>
 
-          {user ? (
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex flex-col items-end">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-black text-white uppercase tracking-tight">
-                    {user.email?.split('@')[0]}
-                  </span>
-
-                  <div className="w-8 h-8 rounded-xl bg-[#121E3D] border border-[#1C2E5A] flex items-center justify-center text-[#D4AF37] shadow-inner overflow-hidden">
-                    <User size={18} />
-                  </div>
+          {/* Account & Auth Section */}
+          {(() => {
+            if (authLoading) {
+              return (
+                <div className="w-28 h-10 bg-[#121E3D] border border-[#1C2E5A] rounded-xl animate-pulse flex items-center justify-center">
+                  <span className="text-xs text-gray-500 font-bold">...</span>
                 </div>
-              </div>
+              );
+            }
 
-              <button
-                onClick={handleLogout}
-                className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                title={language === 'ar' ? 'تسجيل الخروج' : 'Logout'}
-              >
-                <LogOut size={20} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleLogin}
-              className="flex items-center gap-2 bg-[#D4AF37] hover:bg-[#E5C158] text-[#0A1128] transition-all px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl shadow-[#D4AF37]/10"
-            >
-              <User size={18} />
-              <span className="hidden sm:inline">
-                {language === 'ar' ? 'دخول / تسجيل' : 'Login / Register'}
-              </span>
-            </button>
-          )}
+            if (!user) {
+              // If settings are still loading or auth UI is disabled, do not render the login button (prevent flicker)
+              if (settingsLoading || !settings.authUiEnabled) {
+                return null;
+              }
+
+              return (
+                <button
+                  onClick={handleLogin}
+                  className="flex items-center gap-2 bg-[#D4AF37] hover:bg-[#E5C158] text-[#0A1128] transition-all px-4 sm:px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl shadow-[#D4AF37]/10"
+                >
+                  <User size={18} />
+                  <span>{language === 'ar' ? 'دخول / تسجيل' : 'Login / Register'}</span>
+                </button>
+              );
+            }
+
+            if (platformUserLoading) {
+              return (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-[#121E3D] border border-[#1C2E5A] px-3 py-2 rounded-xl">
+                    <div className="w-6 h-6 rounded-lg bg-[#1C2E5A] animate-pulse flex items-center justify-center text-[#D4AF37]">
+                      <User size={14} />
+                    </div>
+                    <span className="text-xs font-bold text-gray-400 animate-pulse">...</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                    title={language === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+                  >
+                    <LogOut size={20} />
+                  </button>
+                </div>
+              );
+            }
+
+            const companyDisplayName = platformUser?.full_name || user?.user_metadata?.full_name || (language === 'ar' ? 'المستخدم' : 'User');
+
+            return (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 bg-[#121E3D] border border-[#1C2E5A] px-3 py-1.5 rounded-xl shadow-inner">
+                  <div className="w-7 h-7 rounded-lg bg-[#1C2E5A] flex items-center justify-center text-[#D4AF37] shrink-0">
+                    <User size={16} />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-white max-w-[130px] sm:max-w-[220px] truncate" title={companyDisplayName}>
+                    {companyDisplayName}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-[#1C2E5A] hover:border-red-500/30"
+                  title={language === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+            );
+          })()}
 
           <button
             className="lg:hidden p-2 text-gray-300 hover:text-white"

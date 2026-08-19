@@ -8,6 +8,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { PriceDisplay } from '../components/PriceDisplay';
 import { exportChartToPNG } from '../utils/exportChart';
 import { formatDisplayDate } from '../utils/formatDate';
+import { useChartContainer } from '../hooks/useChartContainer';
 
 export const HistoricalArchive = () => {
   const { t, language } = useLanguage();
@@ -15,7 +16,7 @@ export const HistoricalArchive = () => {
   const [commodities, setCommodities] = useState<any[]>([]);
   const [selectedCommodityId, setSelectedCommodityId] = useState<string>('');
   
-  const chartRef = React.useRef<HTMLDivElement>(null);
+  const { containerRef: chartRef, isReady } = useChartContainer();
   
   const [formattedHistory, setFormattedHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -248,6 +249,7 @@ export const HistoricalArchive = () => {
                   </button>
                   {/* Chart */}
                   <div ref={chartRef} className="w-full h-[280px] md:h-[360px] lg:h-[420px] mb-8 relative pt-10" dir="ltr">
+                    {isReady && formattedHistory && formattedHistory.length > 0 && (
                     <ResponsiveContainer width="100%" height="100%">
                        <AreaChart data={formattedHistory}>
                           <defs>
@@ -281,6 +283,7 @@ export const HistoricalArchive = () => {
                           />
                        </AreaChart>
                     </ResponsiveContainer>
+                    )}
                   </div>
 
                   {/* Summary Stats Grid */}

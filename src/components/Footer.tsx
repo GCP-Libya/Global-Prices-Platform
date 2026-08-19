@@ -88,10 +88,10 @@ export const Footer = () => {
           <div>
             <h3 className="text-lg font-bold text-white mb-6 border-b border-[#1C2E5A] pb-2 inline-block">{t('corporateServices')}</h3>
             <ul className="space-y-3">
-              <li><Link to="/services" className="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm">{t('apiIntegration')}</Link></li>
-              <li><Link to="/services" className="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm">{t('customExport')}</Link></li>
-              <li><Link to="/services" className="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm">{t('premiumSubs')}</Link></li>
-              <li><Link to="/services" className="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm">{t('techSupport')}</Link></li>
+              <li><Link to="/services/api" className="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm">{t('apiIntegration')}</Link></li>
+              <li><Link to="/services/data-export" className="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm">{t('customExport')}</Link></li>
+              <li><Link to="/services/subscriptions" className="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm">{t('premiumSubs')}</Link></li>
+              <li><Link to="/services/support" className="text-gray-400 hover:text-[#D4AF37] transition-colors text-sm">{t('techSupport')}</Link></li>
             </ul>
           </div>
 

@@ -4,6 +4,7 @@ import { X, TrendingUp, TrendingDown, Minus, Activity, Info, Calendar, Download 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../context/LanguageContext';
+import { useChartContainer } from '../hooks/useChartContainer';
 import { PriceDisplay } from './PriceDisplay';
 import { exportChartToPNG } from '../utils/exportChart';
 import { formatDisplayDate } from '../utils/formatDate';
@@ -19,7 +20,7 @@ export const CommodityHistoryModal: React.FC<CommodityHistoryModalProps> = ({ co
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<number | 'all'>(7); // days
   
-  const chartRef = useRef<HTMLDivElement>(null);
+  const { containerRef: chartRef, isReady } = useChartContainer();
   
   const [stats, setStats] = useState({
     firstPrice: 0,
@@ -34,6 +35,8 @@ export const CommodityHistoryModal: React.FC<CommodityHistoryModalProps> = ({ co
     const fetchHistory = async () => {
       setLoading(true);
       try {
+        console.log('History symbol:', commodity.symbol);
+        
         let query = supabase
           .from('commodity_price_history')
           .select('*')
@@ -49,10 +52,13 @@ export const CommodityHistoryModal: React.FC<CommodityHistoryModalProps> = ({ co
         const { data, error } = await query;
 
         if (error) throw error;
+        
+        console.log('History rows:', data);
 
         if (data && data.length > 0) {
           const formattedData = data.map(item => ({
             ...item,
+            price: Number(item.price),
             time: formatDisplayDate(item.recorded_at)
           }));
           const isMobile = window.innerWidth < 768;
@@ -65,10 +71,10 @@ export const CommodityHistoryModal: React.FC<CommodityHistoryModalProps> = ({ co
           setHistoryData(displayData);
 
           // Calculate stats
-          const prices = data.map(d => d.price);
+          const prices = data.map(d => Number(d.price));
           setStats({
-            firstPrice: data[0].price,
-            lastPrice: data[data.length - 1].price,
+            firstPrice: prices[0],
+            lastPrice: prices[prices.length - 1],
             highPrice: Math.max(...prices),
             lowPrice: Math.min(...prices),
             firstDate: data[0].recorded_at,
@@ -219,14 +225,14 @@ export const CommodityHistoryModal: React.FC<CommodityHistoryModalProps> = ({ co
                     </div>
                  </div>
                ) : historyData.length < 2 ? (
-                 <div className="h-80 md:h-[400px] w-full flex flex-col items-center justify-center gap-4">
+                 <div className="h-[320px] w-full flex flex-col items-center justify-center gap-4">
                     <Activity size={48} className="text-gray-700 animate-pulse" />
                     <p className="text-gray-500 font-bold text-center max-w-xs">
-                      {language === 'ar' ? 'لا توجد بيانات تاريخية كافية لهذه السلعة' : 'Not enough historical data for this commodity'}
+                      {language === 'ar' ? 'لا توجد بيانات تاريخية متاحة لهذه السلعة حاليًا' : 'No historical data available for this commodity right now'}
                     </p>
                  </div>
                ) : (
-                 <div ref={chartRef} className="w-full h-[280px] md:h-[360px] lg:h-[420px]" dir="ltr">
+                 <div ref={chartRef} className="w-full h-[320px] md:h-[400px] min-w-0" dir="ltr">
                     <ResponsiveContainer width="100%" height="100%">
                        <AreaChart data={historyData}>
                           <defs>

@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useMarketData } from '../context/MarketContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useSettings } from '../context/SettingsContext';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { useChartContainer } from '../hooks/useChartContainer';
 import { BarChart2, PieChart, TrendingUp, FileSpreadsheet, FileText, FileCode, Image as ImageIcon, Filter } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -15,44 +17,60 @@ import { formatDisplayDate } from '../utils/formatDate';
 export const AnalyticsCharts = () => {
   const { data: commoditiesData } = useMarketData();
   const { t, language } = useLanguage();
+  const { settings } = useSettings();
   const [activeTab, setActiveTab] = useState<'energy' | 'metals' | 'commodities'>('energy');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('');
   const [historyData, setHistoryData] = useState<any[]>([]);
-  const chartRef = useRef<HTMLDivElement>(null);
+  const { containerRef: chartRef, isReady } = useChartContainer();
 
-  const energyData = commoditiesData.filter(c => c.sector === 'energy');
-  const metalsData = commoditiesData.filter(c => c.sector === 'metals');
-  const basicCommoditiesData = commoditiesData.filter(c => c.sector === 'commodities');
+  const energyData = useMemo(() => commoditiesData.filter(c => c.sector === 'energy' || c.sectorAr === 'الطاقة' || c.sectorEn === 'Energy'), [commoditiesData]);
+  const metalsData = useMemo(() => commoditiesData.filter(c => c.sector === 'metals' || c.sectorAr === 'المعادن' || c.sectorEn === 'Metals'), [commoditiesData]);
+  const basicCommoditiesData = useMemo(() => commoditiesData.filter(c => c.sector === 'commodities' || c.sectorAr === 'السلع الأساسية' || c.sectorEn === 'Commodities' || c.sector === 'agriculture'), [commoditiesData]);
 
-  const currentData = activeTab === 'energy' ? energyData : activeTab === 'metals' ? metalsData : basicCommoditiesData;
+  const currentData = useMemo(() => {
+    const tabData = activeTab === 'energy' ? energyData : activeTab === 'metals' ? metalsData : basicCommoditiesData;
+    if (tabData.length > 0) return tabData;
+    return commoditiesData;
+  }, [activeTab, energyData, metalsData, basicCommoditiesData, commoditiesData]);
 
   useEffect(() => {
-    if (currentData.length > 0 && !currentData.some(c => c.symbol === selectedSymbol)) {
-      setSelectedSymbol(currentData[0].symbol);
+    if (currentData.length > 0) {
+      if (!selectedSymbol || !currentData.some(c => c.symbol === selectedSymbol)) {
+        setSelectedSymbol(currentData[0].symbol);
+      }
     }
-  }, [activeTab, currentData]);
+  }, [currentData, selectedSymbol]);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchHistory = async () => {
       if (!selectedSymbol) return;
       try {
+        console.log('[ANALYTICS] fetch history for:', selectedSymbol);
         const { data, error } = await supabase
           .from('commodity_price_history')
           .select('symbol, name_ar, name_en, price, recorded_at, created_at')
           .eq('symbol', selectedSymbol)
           .order('recorded_at', { ascending: false })
-          .limit(12);
+          .limit(20);
         
-        if (data && !error) {
-          setHistoryData(data.reverse());
-        } else {
-          setHistoryData([]);
+        if (error) {
+          console.log('[ANALYTICS] history error:', error.message);
         }
-      } catch (err) {
-        console.error('Error fetching history:', err);
+        if (isMounted) {
+          if (data && data.length > 0) {
+            setHistoryData(data.slice().reverse());
+          } else {
+            setHistoryData([]);
+          }
+        }
+      } catch (err: any) {
+        console.error('Error fetching history in Analytics:', err);
+        if (isMounted) setHistoryData([]);
       }
     };
     fetchHistory();
+    return () => { isMounted = false; };
   }, [selectedSymbol]);
 
   const [isMobile, setIsMobile] = useState(false);
@@ -248,10 +266,12 @@ export const AnalyticsCharts = () => {
               ) : (
                 <div className="relative w-full h-full rounded-2xl overflow-hidden">
                   <img
-                    src="/logo.png"
+                    src={settings.siteLogo || "https://i.postimg.cc/vTzC2Jbx/January-05-2026-1-removebg-preview.png"}
                     alt="watermark"
+                    data-watermark="true"
                     className="absolute inset-0 m-auto w-32 md:w-48 opacity-5 pointer-events-none select-none"
                   />
+                  {isReady && historyChartData && historyChartData.length > 0 && (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={historyChartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                       <CartesianGrid
@@ -283,6 +303,7 @@ export const AnalyticsCharts = () => {
                       />
                     </LineChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               )}
             </div>

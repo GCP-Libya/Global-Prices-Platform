@@ -69,8 +69,13 @@ export const exportChartToPNG = async ({
     clonedChart.style.height = `${element.offsetHeight}px`;
     clonedChart.style.width = '100%';
     
-    // Watermark
+    // Remove any existing duplicate watermarks/images inside the cloned chart element
+    const existingWatermarks = clonedChart.querySelectorAll('img[alt="watermark"], [data-watermark="true"], img');
+    existingWatermarks.forEach((el) => el.remove());
+
+    // Single source of truth for the chart watermark in export
     const watermark = document.createElement('div');
+    watermark.setAttribute('data-watermark', 'true');
     watermark.style.position = 'absolute';
     watermark.style.top = '50%';
     watermark.style.left = '50%';
@@ -83,7 +88,7 @@ export const exportChartToPNG = async ({
     watermark.style.alignItems = 'center';
     watermark.style.width = '100%';
     watermark.style.height = '100%';
-    watermark.innerHTML = `<img src="${logoUrl}" style="width: 50%; max-width: 400px; height: auto; object-fit: contain;" crossorigin="anonymous" />`;
+    watermark.innerHTML = `<img src="${logoUrl}" alt="Watermark" style="width: 50%; max-width: 400px; height: auto; object-fit: contain;" crossorigin="anonymous" />`;
     
     clonedChart.appendChild(watermark);
     

@@ -23,7 +23,7 @@ interface SiteSettings {
   disclaimerAr: string;
   privacyPolicyAr: string;
   termsAr: string;
-  adminPath: string;
+  authUiEnabled: boolean;
 }
 
 const defaultSettings: SiteSettings = {
@@ -48,7 +48,7 @@ const defaultSettings: SiteSettings = {
   disclaimerAr: 'جميع البيانات والتحاليل المقدمة في هذه المنصة هي لأغراض إعلامية فقط ولا تعتبر نصيحة استثمارية.',
   privacyPolicyAr: 'نحن نلتزم بحماية خصوصية بياناتك ومعلوماتك الشخصية.',
   termsAr: 'باستخدامك لهذه المنصة، فإنك توافق على الالتزام بشروط الاستخدام المعمول بها.',
-  adminPath: '/admin',
+  authUiEnabled: true
 };
 
 interface SettingsContextType {
@@ -64,32 +64,37 @@ const SettingsContext = createContext<SettingsContextType>({
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
+  const fetchedRef = React.useRef(false);
 
   useEffect(() => {
     let isMounted = true;
     
+    const parseAuthUiEnabled = (val: any): boolean => {
+      if (val === undefined || val === null) return true;
+      if (typeof val === 'boolean') return val;
+      if (typeof val === 'string') {
+        const lower = val.trim().toLowerCase();
+        if (lower === 'false' || lower === '0' || lower === 'disabled' || lower === 'off') return false;
+        if (lower === 'true' || lower === '1' || lower === 'enabled' || lower === 'on') return true;
+      }
+      return Boolean(val);
+    };
+
     const fetchAllSettings = async () => {
       try {
-        const timeoutPromise = new Promise((resolve) => 
-          setTimeout(() => resolve({ data: null, error: new Error('Settings fetch timed out') }), 5000)
-        );
-
-        const { data, error } = await Promise.race([
-          supabase.from('platform_settings').select('key, value'),
-          timeoutPromise
-        ]) as any;
+        const startedAt = performance.now();
+        const { data, error } = await supabase.from('platform_settings').select('key, value');
+        console.log(`settings-fetch: ${Math.round(performance.now() - startedAt)} ms`);
           
         if (error) {
-          console.warn('Could not load platform_settings from Supabase:', error);
-          // Don't return, keep default settings
+          console.error('Supabase error fetching platform_settings:', error);
+          // Keep default settings
         }
-
         if (isMounted && data) {
           const settingsMap: any = {};
           data.forEach(item => {
             settingsMap[item.key] = item.value;
           });
-
           setSettings(prev => ({
             ...prev,
             siteNameAr: settingsMap.platform_name_ar || prev.siteNameAr,
@@ -113,10 +118,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             disclaimerAr: settingsMap.disclaimer_ar || prev.disclaimerAr,
             privacyPolicyAr: settingsMap.privacy_policy_ar || prev.privacyPolicyAr,
             termsAr: settingsMap.terms_ar || prev.termsAr,
+            authUiEnabled: settingsMap.auth_ui_enabled !== undefined 
+              ? parseAuthUiEnabled(settingsMap.auth_ui_enabled) 
+              : prev.authUiEnabled,
           }));
         }
       } catch (err) {
-        console.error('Error fetching platform settings:', err);
+        console.error('Exception fetching platform settings:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -124,10 +132,38 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     fetchAllSettings();
 
-    // subscription removed temporarily for performance
-    
+    // Setup Realtime subscription for platform_settings changes if supported
+    const channel = supabase
+      .channel('platform_settings_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'platform_settings' },
+        (payload: any) => {
+          if (!isMounted) return;
+          const newRow = payload.new;
+          if (newRow && newRow.key) {
+            setSettings(prev => {
+              if (newRow.key === 'auth_ui_enabled') {
+                return { ...prev, authUiEnabled: parseAuthUiEnabled(newRow.value) };
+              }
+              if (newRow.key === 'platform_status') {
+                return { ...prev, isSiteActive: newRow.value !== 'maintenance' };
+              }
+              if (newRow.key === 'platform_name_ar') return { ...prev, siteNameAr: newRow.value };
+              if (newRow.key === 'platform_name_en') return { ...prev, siteNameEn: newRow.value };
+              if (newRow.key === 'platform_logo_url') return { ...prev, siteLogo: newRow.value };
+              return prev;
+            });
+          } else {
+            fetchAllSettings();
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       isMounted = false;
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -156,4 +192,3 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 };
 
 export const useSettings = () => useContext(SettingsContext);
-

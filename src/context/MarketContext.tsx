@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Commodity } from '../types';
 
@@ -56,26 +56,21 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const fetchCommodities = async () => {
     try {
       const fetchStart = Date.now();
-      
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ data: null, error: { message: 'Market fetch timed out' } }), 5000)
-      );
+      console.log('[MARKET] fetch start');
+      const { data: commodities, error: supaError } = await supabase
+        .from('commodities')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(100);
 
-      const { data: commodities, error: supaError } = await Promise.race([
-        supabase
-          .from('commodities')
-          .select('id,symbol,name_ar,name_en,sector,price,previous_price,change_value,change_percent,trend,high,low,unit,source,updated_at,status,is_visible')
-          .eq('status', 'active')
-          .eq('is_visible', true)
-          .order('updated_at', { ascending: false })
-          .limit(50),
-        timeoutPromise
-      ]) as any;
-
-      if (supaError) throw supaError;
+      console.log('[MARKET] result rows:', commodities?.length);
+      if (supaError) {
+        console.log('[MARKET] error:', supaError.message);
+        throw supaError;
+      }
+      console.log('[MARKET] fetch end');
 
       setLatency(Date.now() - fetchStart);
-      setPricesLoading(false);
       setError(null);
       
       if (commodities && commodities.length > 0) {
@@ -83,21 +78,43 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const mappedCommodities = commodities
           .filter((c: any) => c.is_visible !== false)
           .map((c: any) => {
-            let secAr = c.sector;
-            let secEn = c.sector;
-            if (c.sector === 'energy' || c.sector === 'النفط' || c.sector === 'Energy') { secAr = 'الطاقة'; secEn = 'Energy'; }
-            else if (c.sector === 'metals' || c.sector === 'المعادن' || c.sector === 'Metals') { secAr = 'المعادن'; secEn = 'Metals'; }
-            else if (c.sector === 'commodities' || c.sector === 'agriculture' || c.sector === 'السلع الزراعية' || c.sector === 'السلع الأساسية' || c.sector === 'Agriculture') { secAr = 'السلع الأساسية'; secEn = 'Commodities'; }
-            else if (c.sector === 'forex' || c.sector === 'العملات' || c.sector === 'Currencies') { secAr = 'العملات'; secEn = 'Currencies'; }
-            else if (c.sector === 'indices' || c.sector === 'المؤشرات' || c.sector === 'Indices') { secAr = 'المؤشرات'; secEn = 'Indices'; }
-            else if (c.sector === 'shipping' || c.sector === 'الشحن' || c.sector === 'Shipping') { secAr = 'الشحن'; secEn = 'Shipping'; }
+            let normalizedSector = 'commodities';
+            let secAr = 'السلع الأساسية';
+            let secEn = 'Commodities';
+
+            const rawSector = String(c.sector || '').toLowerCase().trim();
+            if (rawSector === 'energy' || rawSector === 'oil' || rawSector === 'النفط' || rawSector === 'الطاقة') {
+              normalizedSector = 'energy';
+              secAr = 'الطاقة';
+              secEn = 'Energy';
+            } else if (rawSector === 'metals' || rawSector === 'metal' || rawSector === 'المعادن') {
+              normalizedSector = 'metals';
+              secAr = 'المعادن';
+              secEn = 'Metals';
+            } else if (rawSector === 'commodities' || rawSector === 'commodity' || rawSector === 'agriculture' || rawSector === 'السلع الزراعية' || rawSector === 'السلع الأساسية' || rawSector === 'السلع') {
+              normalizedSector = 'commodities';
+              secAr = 'السلع الأساسية';
+              secEn = 'Commodities';
+            } else if (rawSector === 'forex' || rawSector === 'currencies' || rawSector === 'العملات') {
+              normalizedSector = 'forex';
+              secAr = 'العملات';
+              secEn = 'Currencies';
+            } else if (rawSector === 'indices' || rawSector === 'المؤشرات') {
+              normalizedSector = 'indices';
+              secAr = 'المؤشرات';
+              secEn = 'Indices';
+            } else if (rawSector === 'shipping' || rawSector === 'الشحن') {
+              normalizedSector = 'shipping';
+              secAr = 'الشحن';
+              secEn = 'Shipping';
+            }
 
             return {
               id: String(c.id),
               nameAr: c.name_ar,
               nameEn: c.name_en,
               symbol: c.symbol,
-              sector: c.sector,
+              sector: normalizedSector,
               sectorAr: secAr,
               sectorEn: secEn,
               price: c.price,
@@ -113,8 +130,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               isVisible: c.is_visible,
               prevClose: c.previous_price,
               changeAmount: c.change_value,
-              statusAr: c.status === 'active' ? 'مفتوح' : 'مغلق',
-              statusEn: c.status === 'active' ? 'Open' : 'Closed',
+              statusAr: c.status === 'active' || !c.status ? 'مفتوح' : 'مغلق',
+              statusEn: c.status === 'active' || !c.status ? 'Open' : 'Closed',
               lastUpdate: c.updated_at || new Date().toISOString(),
               history: []
             };
@@ -131,12 +148,10 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     } catch (err: any) {
       console.warn('Supabase commodities fetch error:', err);
-      // We don't block the app if fetch fails, just set empty data or keep existing
       if (data.length === 0) {
         setError('تعذر تحميل البيانات مؤقتًا');
         setConnected(false);
         setIsMockData(false);
-        setData([]);
       }
     } finally {
       setPricesLoading(false);
@@ -145,50 +160,42 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const fetchNews = async () => {
     try {
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ data: null, error: { message: 'News timeout' } }), 5000)
-      );
-
-      const { data: newsData, error: newsError } = await Promise.race([
-        supabase
-          .from('news')
-          .select('*')
-          .eq('status', 'published')
-          .eq('is_visible', true)
-          .order('created_at', { ascending: false })
-          .limit(3),
-        timeoutPromise
-      ]) as any;
+      const { data: newsData, error: newsError } = await supabase
+        .from('news')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
       
-      if (!newsError && newsData) {
+      if (newsError) {
+        console.warn('Supabase news fetch error:', newsError.message);
+      } else if (newsData) {
         setNews(newsData);
       }
     } catch (err) {
-      console.warn('Supabase news fetch error:', err);
+      console.warn('Supabase news fetch exception:', err);
     }
   };
 
   const fetchAnalyses = async () => {
     try {
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ data: null, error: { message: 'Analyses timeout' } }), 5000)
-      );
-
-      const { data: analysesData, error: analysesError } = await Promise.race([
-        supabase
-          .from('analyses')
-          .select('*')
-          .eq('status', 'published')
-          .order('created_at', { ascending: false })
-          .limit(3),
-        timeoutPromise
-      ]) as any;
+      console.log('[REPORTS/ANALYSES] fetch start');
+      const { data: analysesData, error: analysesError } = await supabase
+        .from('analyses')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
       
-      if (!analysesError && analysesData) {
+      console.log('[REPORTS/ANALYSES] result rows:', analysesData?.length);
+      if (analysesError) {
+        console.log('[REPORTS/ANALYSES] error:', analysesError.message);
+      }
+      console.log('[REPORTS/ANALYSES] fetch end');
+      
+      if (analysesData) {
         setAnalyses(analysesData);
       }
     } catch (err) {
-      console.warn('Supabase analyses fetch error:', err);
+      console.warn('Supabase analyses fetch exception:', err);
     }
   };
 
@@ -199,25 +206,25 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     setHistoryLoading(true);
     try {
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ data: null, error: { message: 'History timeout' } }), 5000)
-      );
-
-      const { data: historyData, error: historyError } = await Promise.race([
-        supabase
-          .from('commodity_price_history')
-          .select('*')
-          .eq('symbol', sym)
-          .order('recorded_at', { ascending: true })
-          .limit(50),
-        timeoutPromise
-      ]) as any;
+      console.log('[ARCHIVE/HISTORY] fetch start symbol:', sym);
+      const { data: historyData, error: historyError } = await supabase
+        .from('commodity_price_history')
+        .select('*')
+        .eq('symbol', sym)
+        .order('recorded_at', { ascending: true })
+        .limit(50);
       
-      if (!historyError && historyData) {
+      console.log('[ARCHIVE/HISTORY] result rows:', historyData?.length);
+      if (historyError) {
+        console.log('[ARCHIVE/HISTORY] error:', historyError.message);
+      }
+      console.log('[ARCHIVE/HISTORY] fetch end');
+      
+      if (historyData) {
         setHistory(historyData);
       }
     } catch (err) {
-      console.warn('Supabase history fetch error:', err);
+      console.warn('Supabase history fetch exception:', err);
     } finally {
       setHistoryLoading(false);
     }
@@ -231,10 +238,18 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchNews();
     fetchAnalyses();
 
-    // Removed realtime subscriptions temporarily to improve load speed
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!isMounted) return;
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        fetchCommodities();
+        fetchNews();
+        fetchAnalyses();
+      }
+    });
 
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 
